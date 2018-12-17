@@ -7,7 +7,7 @@
  * Copyright 2010 stworthy [ stworthy@gmail.com ] 
  * 
  * Dependencies:
- * 	resizable
+ * 	resizable12
  * 	linkbutton
  * 	pagination
  * 
