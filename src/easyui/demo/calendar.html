@@ -1,0 +1,28 @@
+ var maxLineNo =  pageData.maxlineno ;
+                hae.ajax.ajax({
+                    type: 'post',
+                    url: 'services/pac.price.authorization.product.listMaxlineno',
+                    data: {
+                        "book_id": priceBookId
+                    },
+                    async: false,
+                    success: function(result) {
+                         if(result&&result.BO&&result.BO[0]){
+                         if(result.BO[0].maxlineno){
+                            maxLineNo = result.BO[0].maxlineno; 
+                         }else{
+                             maxLineNo = 0;
+                         } 
+                           //获取最大行号
+                        gridData.forEach(function(curData) {
+                            if (parseInt(curData.line_no) > parseInt(maxLineNo)) {
+                                maxLineNo = parseInt(curData.line_no);
+                            }
+                        });
+                        
+                        }
+                    },
+                    error: function(err) {
+                        console.log("error " + err);
+                    }
+                });
