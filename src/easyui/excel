@@ -1,0 +1,577 @@
+package com.huawei.it.hae.hmallservice;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import com.sun.media.sound.InvalidFormatException;
+
+/**
+ * 根据模板导出excel 支持 xls，xlsx
+ * 原理：根据单元格子坐标修改，保持样式不变
+ * 
+ * 组装MAP数据  key坐标，value是数据
+ * key = 2,2 :第3行3列，java数组从0开始， value： 要替换的值
+ * 
+ * @author xWX398963
+ *
+ */  
+public class ExcelUtil {
+	private static final Logger logger = Logger.getLogger(ExcelUtil.class);
+	//规范staic调用
+	private ExcelUtil(){}
+	
+	/**
+	 * 根据xls模板生成另外一个xls文件
+	 *    
+	 * 根据map数据设置单元格的值   map数据结构： key=行,列   value="字符"
+	 * @author xWX398963
+	 * @param inputFilePath  输入文件：模板
+	 * @param outPutFilePath 输出文件
+	 * @param dataMap  需要修改的数据    ： key=行,列   value="字符" eg: 1,2 "xwx398963"(数组1,2;实际文件第二行 第三列填值：xwx398963)
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static void updateMode(String inputFilePath,String outPutFilePath,Map<String,Object> dataMap,Map<String,Object> dataMapTwoSheet ,int srcRowList,int lastRowList,int mergerColStart,int mergerColEnd) throws FileNotFoundException, IOException{
+		if(StringUtils.isEmpty(inputFilePath)||StringUtils.isEmpty(outPutFilePath)){
+			return;
+		}
+		//HSSFWorkbook解析 xls文件  XSSFWorkbook解析 xlsx文件
+		if(inputFilePath.endsWith("xls")&&null!=dataMap){
+			copyAndUpdateXls(inputFilePath, outPutFilePath, dataMap, srcRowList, lastRowList, mergerColStart, mergerColEnd);
+		} 
+		
+		if(inputFilePath.endsWith("xlsx")&&null!=dataMap){
+			copyAndUpdateXlsx(inputFilePath, outPutFilePath, dataMap,dataMapTwoSheet, srcRowList, lastRowList, mergerColStart, mergerColEnd);
+		}
+	}
+	
+	public static void updateMode(String inputFilePath,String outPutFilePath,Map<String,Object> dataMap) throws FileNotFoundException, IOException{
+		if(StringUtils.isEmpty(inputFilePath)||StringUtils.isEmpty(outPutFilePath)){
+			return;
+		}
+		//HSSFWorkbook解析 xls文件  XSSFWorkbook解析 xlsx文件
+		if(inputFilePath.endsWith("xls")&&null!=dataMap){
+			copyAndUpdateXls(inputFilePath, outPutFilePath, dataMap);
+		}
+		
+		if(inputFilePath.endsWith("xlsx")&&null!=dataMap){
+			copyAndUpdateXlsx(inputFilePath, outPutFilePath, dataMap);
+		}
+	}
+	/**
+	 * 根据xls模板生成另外一个xls文件
+	 * 
+	 * 根据map数据设置单元格的值   map数据结构： key=行,列   value="字符"
+	 * @param inputFilePath  输入文件：模板
+	 * @param outPutFilePath 输出文件
+	 * @param dataMap  需要修改的数据    ： key=行,列   value="字符" eg: 1,2 "xwx398963"(第二行 第三列填值：xwx398963)  
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static void copyAndUpdateXls(String inputFilePath,String outPutFilePath,Map<String,Object> dataMap,int srcRowList,int lastRowList,int mergerColStart,int mergerColEnd) throws FileNotFoundException, IOException{
+		if(null!=dataMap){
+			Set<String> keySet = dataMap.keySet();
+			//有数据更新
+			if(null!=keySet&&keySet.size()>0){
+				File  inXFile = new File(inputFilePath);
+				// 声明一个工作薄 
+				HSSFWorkbook xWorkbook = new HSSFWorkbook(new FileInputStream(inXFile));
+				HSSFSheet xsheet = xWorkbook.getSheetAt(0);
+				HSSFRow xssfRowFrom =  getRow(xsheet,srcRowList);
+				for(int i=srcRowList+1;i<lastRowList;i++){
+					HSSFRow createRow = xsheet.createRow(i);
+					copyRow(xWorkbook, xssfRowFrom, createRow); 
+					mergerRegion(xsheet, i, i, mergerColStart, mergerColEnd); 
+				}
+				for (String key : keySet) {
+					String[] data= key.split(",");
+					int row = Integer.valueOf(data[0]);
+					int col = Integer.valueOf(data[1]);	
+					if(null!=data&&data.length>1){
+						HSSFCell cell = xsheet.getRow(row).getCell(col);
+					//	String value = MapUtils.getString(dataMap, key);
+						setCellValue(cell,dataMap.get(key));
+					}
+				}
+				FileOutputStream out=new FileOutputStream(outPutFilePath);
+				//生成文件
+				xWorkbook.write(out);
+				xWorkbook.close();
+				closeOut(out);
+			}
+		}
+	}
+	/**
+	 * 根据xls模板生成另外一个xls文件
+	 * 
+	 * 根据map数据设置单元格的值   map数据结构： key=行,列   value="字符"
+	 * @param inputFilePath  输入文件：模板
+	 * @param outPutFilePath 输出文件
+	 * @param dataMap  需要修改的数据    ： key=行,列   value="字符" eg: 1,2 "xwx398963"(第二行 第三列填值：xwx398963)  
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static void copyAndUpdateXls(String inputFilePath,String outPutFilePath,Map<String,Object> dataMap) throws FileNotFoundException, IOException{
+		Set<String> keySet = dataMap.keySet();
+		//有数据更新
+		if(null!=keySet&&keySet.size()>0){
+			File  inFile = new File(inputFilePath);
+			// 声明一个工作薄
+			HSSFWorkbook workbook = new HSSFWorkbook(new FileInputStream(inFile));
+			HSSFSheet sheet = workbook.getSheetAt(0);
+			for (String key : keySet) {
+				String[] data= key.split(",");
+				int row = Integer.valueOf(data[0]);
+				int col = Integer.valueOf(data[1]);
+				
+				if(null!=data&&data.length>1){
+					HSSFCell cell = sheet.getRow(row).getCell(col);
+					String value = MapUtils.getString(dataMap, key);
+					setCellValue(cell,dataMap.get(key));
+				}
+			}
+			FileOutputStream out=new FileOutputStream(outPutFilePath);
+			//生成文件
+			workbook.write(out);
+			workbook.close();
+			closeOut(out);
+		}
+	}
+	
+	/**
+	 * 根据xlsx模板生成另外一个xlsx文件
+	 * 
+	 * 根据map数据设置单元格的值   map数据结构： key=行,列   value="字符"
+	 * @param inputFilePath  输入文件：模板
+	 * @param outPutFilePath 输出文件
+	 * @param dataMap  需要修改的数据    ： key=行,列   value="字符" eg: 1,2 "xwx398963"(第二行 第三列填值：xwx398963)
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static void copyAndUpdateXlsx(String inputFilePath,String outPutFilePath,Map<String,Object> dataMap) throws FileNotFoundException, IOException{
+		if(null!=dataMap){
+			Set<String> keySet = dataMap.keySet();
+			//有数据更新
+			if(null!=keySet&&keySet.size()>0){
+				File  inXFile = new File(inputFilePath);
+				// 声明一个工作薄 
+				XSSFWorkbook xWorkbook = new XSSFWorkbook(new FileInputStream(inXFile));
+				XSSFSheet xsheet = xWorkbook.getSheetAt(0);
+				for (String key : keySet) {
+					String[] data= key.split(",");
+					int row = Integer.valueOf(data[0]);
+					int col = Integer.valueOf(data[1]);	
+					if(null!=data&&data.length>1){
+						XSSFCell cell = xsheet.getRow(row).getCell(col);
+					//	String value = MapUtils.getString(dataMap, key);
+						setCellValue(cell,dataMap.get(key));
+					}
+				}
+				FileOutputStream out=new FileOutputStream(outPutFilePath);
+				//生成文件
+				xWorkbook.write(out);
+				xWorkbook.close();
+				closeOut(out);
+			}
+		}
+	}
+	
+	/**
+	 * 根据xlsx模板生成另外一个xlsx文件
+	 * 
+	 * 根据map数据设置单元格的值   map数据结构： key=行,列   value="字符"
+	 * @param inputFilePath  输入文件：模板
+	 * @param outPutFilePath 输出文件
+	 * @param dataMap  需要修改的数据    ： key=行,列   value="字符" eg: 1,2 "xwx398963"(第二行 第三列填值：xwx398963)
+	 * @param srcRowList 需要复制的行作为模板 用于list显示 ：列表第一行的样式会复制到第二行
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static void copyAndUpdateXlsx(String inputFilePath,String outPutFilePath,Map<String,Object> dataMap,Map<String,Object> dataMapTwo,int srcRowList,int lastRowList,int srcRowListTwo,int lastRowListTwo) throws FileNotFoundException, IOException{
+		if(null!=dataMap){
+			Set<String> keySet = dataMap.keySet();
+			Set<String> keySetTwo =null;
+			List<Integer> listflag = new ArrayList<Integer>();
+			if(null!=dataMapTwo&&dataMapTwo.size()>0){
+				listflag = (List<Integer>) dataMapTwo.get("groupRow");
+				if(null!=listflag&&listflag.size()>0){
+					dataMapTwo.remove("groupRow");
+				}
+				keySetTwo= dataMapTwo.keySet();
+			}
+			//有数据更新
+			if(null!=keySet&&keySet.size()>0){
+				File  inXFile = new File(inputFilePath);
+				// 声明一个工作薄 
+				XSSFWorkbook xWorkbook = new XSSFWorkbook(new FileInputStream(inXFile));
+				XSSFSheet xsheet = xWorkbook.getSheetAt(0);
+				XSSFSheet xsheet2 = xWorkbook.getSheetAt(1);
+				XSSFRow xssfRowFrom =  getXRow(xsheet,srcRowList);
+				XSSFRow xssfRowFrom2 =  getXRow(xsheet2,srcRowListTwo);
+				for(int i=srcRowList+1;i<lastRowList;i++){
+					XSSFRow createRow = xsheet.createRow(i);
+					copyXRow(xWorkbook, xssfRowFrom, createRow); 
+					//mergerRegion(xsheet, i, i, mergerColStart, mergerColEnd);
+					/*if(i!=10)xsheet.setRowGroupCollapsed(9, true);
+					xsheet.groupRow(i, i);*/
+				}
+				for (String key : keySet) {
+					String[] data= key.split(","); 
+					int row = Integer.valueOf(data[0]);
+					int col = Integer.valueOf(data[1]);	
+					if(null!=data&&data.length>1){
+						XSSFCell cell = xsheet.getRow(row).getCell(col);
+					//	String value = MapUtils.getString(dataMap, key);
+						setCellValue(cell,dataMap.get(key));
+					}
+				}
+				//第二个sheet
+				if(null!=keySetTwo&&keySetTwo.size()>0){
+					boolean flag = true;
+					for(int n=srcRowListTwo+1;n<lastRowListTwo;n++){
+						XSSFRow createRow = xsheet2.createRow(n);
+						copyXRow(xWorkbook, xssfRowFrom2, createRow); 
+						if(null!=listflag&&!listflag.contains(n)){
+							xsheet2.groupRow(n, n);
+							XSSFCellStyle fromStyle =xsheet2.getRow(n).getCell(0).getCellStyle();
+							fromStyle.setAlignment(CellStyle.ALIGN_RIGHT);
+							xsheet2.getRow(n).getCell(0).setCellStyle(fromStyle);
+							if(flag){//收起折叠 
+								xsheet2.setRowGroupCollapsed(n, true);
+								//flag=false;
+							}
+						}else{
+						} 
+					}  
+					xsheet2.setRowSumsBelow(true);
+					xsheet2.setRowSumsRight(false);
+					for (String key : keySetTwo) { 
+						String[] data= key.split(","); 
+						int row = Integer.valueOf(data[0]);
+						int col = Integer.valueOf(data[1]);	
+						if(null!=data&&data.length>1){
+							XSSFCell cell = xsheet2.getRow(row).getCell(col);
+						//	String value = MapUtils.getString(dataMap, key);
+							setCellValue(cell,dataMapTwo.get(key));
+						}
+					} 
+				}
+				FileOutputStream out=new FileOutputStream(outPutFilePath);
+				//生成文件
+				xWorkbook.write(out);
+				xWorkbook.close();
+				closeOut(out);
+			}
+		}
+	}
+	
+	
+	 /**
+     * 根据数据类型设置单元格值
+     *
+     * @param cell 原来的单元格 用于保持单元格style
+     * @return
+     */
+    public static Object setCellValue(Cell cell,Object object) {
+        if (object==null) {
+            return null;
+        }
+        if(object instanceof Date){
+		    cell.setCellValue((Date)object);
+        	return "date";
+        }
+        if(null!=object && object instanceof String){
+        	cell.setCellValue(String.valueOf(object));
+        	 return cell.getStringCellValue();
+        }
+        if(object instanceof Double){
+        	cell.setCellValue(Double.valueOf(String.valueOf(object)));
+        	 return cell.getNumericCellValue();
+        }
+        return null;
+    }
+   
+	
+	/**
+	 * 关闭流
+	 * @author xWX398963
+	 * @param out
+	 * @throws IOException
+	 */
+	public static void closeOut(FileOutputStream out) throws IOException{
+		if(null!=out){
+			out.close();
+		}
+	}
+	
+	/**
+	 * 
+	 * @param from 
+	 * @param to  目标单元格
+	 * @return
+	 */
+	public static XSSFCell copyXCellStyle(XSSFCell from,XSSFCell to){
+		XSSFCellStyle fromCellStyle = from.getCellStyle();
+		to.setCellStyle(fromCellStyle);
+		return to;
+	}
+	/**
+	 * 获取excel xlsx 一行
+	 * @param xssfSheet
+	 * @param rownum
+	 * @return
+	 */
+	public static XSSFRow getXRow (XSSFSheet xssfSheet,int rownum){
+		return xssfSheet.getRow(rownum);
+	}
+	public static HSSFRow getRow (HSSFSheet xssfSheet,int rownum){
+		return xssfSheet.getRow(rownum);
+	}
+	
+	/** 行复制功能 
+	 *  @param fromRow
+	 *  @param toRow 
+	 */
+	public static void copyRow(HSSFWorkbook wb, HSSFRow fromRow, HSSFRow toRow) {
+		toRow.setHeightInPoints(fromRow.getHeightInPoints());
+		for(Cell from:fromRow) {
+			HSSFCell newCell = toRow.createCell(from.getColumnIndex());
+			copyCell(wb, (HSSFCell)from, newCell);
+		}
+	}
+	/** 行复制功能 
+	 *  @param fromRow
+	 *  @param toRow 
+	 */
+	public static void copyXRow(XSSFWorkbook wb, XSSFRow fromRow, XSSFRow toRow) {
+		toRow.setHeightInPoints(fromRow.getHeightInPoints());
+		for(Cell from:fromRow){
+			XSSFCell newCell = toRow.createCell(from.getColumnIndex());
+			copyXCell(wb, (XSSFCell)from, newCell);
+		}
+/*		for (Iterator cellIt = fromRow.cellIterator(); cellIt.hasNext();) {
+			XSSFCell tmpCell = (XSSFCell) cellIt.next();
+			XSSFCell newCell = toRow.createCell(tmpCell.getColumnIndex());
+			copyXCell(wb, tmpCell, newCell);
+		}*/
+	}
+	/**
+	 *  复制原有sheet的合并单元格到新创建的sheet 
+	 *  @param sheetCreat 新创建sheet 
+	 *  @param sheet
+	 * 原有的sheet
+	 */
+	public static void mergerRegion(HSSFSheet fromSheet, HSSFSheet toSheet) {
+		int sheetMergerCount = fromSheet.getNumMergedRegions();
+		for (int i = 0; i < sheetMergerCount; i++) {
+			CellRangeAddress mergedRegionAt = fromSheet.getMergedRegion(i);
+			toSheet.addMergedRegion(mergedRegionAt);
+		}
+	}
+	/**
+	 * 合并单元格  eg:第九,10行  第一列和第二列合并
+	 * @param toSheet
+	 * @param startRow 8
+	 * @param endRow 9
+	 * @param startCol 0
+	 * @param endCol 1
+	 */
+	public static void mergerRegion(HSSFSheet toSheet,int startRow,int endRow,int startCol,int endCol){
+		for(int i = startRow;i<=endRow;i++){
+			toSheet.addMergedRegion(new CellRangeAddress(i, i, startCol, endCol));
+		}
+	}
+	/**
+	 * 合并单元格  eg:第九,10行  第一列和第二列合并
+	 * @param toSheet
+	 * @param startRow 8
+	 * @param endRow 9
+	 * @param startCol 0
+	 * @param endCol 1
+	 */
+	public static void mergerRegion(XSSFSheet toSheet,int startRow,int endRow,int startCol,int endCol){
+		for(int i = startRow;i<=endRow;i++){
+			toSheet.addMergedRegion(new CellRangeAddress(i, i, startCol, endCol));
+		}
+	}
+	/**
+	 * 复制原有sheet的合并单元格到新创建的sheet 
+	 * @param sheetCreat 新创建sheet 
+	 * @param sheet
+	 * 原有的sheet
+	 */
+	public static void mergerXRegion(XSSFSheet fromSheet, XSSFSheet toSheet) {
+		int sheetMergerCount = fromSheet.getNumMergedRegions();
+		for (int i = 0; i < sheetMergerCount; i++) {
+			CellRangeAddress mergedRegionAt = fromSheet.getMergedRegion(i);
+			toSheet.addMergedRegion(mergedRegionAt);
+		}
+	}
+	
+	/**
+	 * 复制单元格true则连同cell的内容一起复制
+	 * @param srcCell 
+	 * @param distCell 
+	 * @param copyValueFlag
+	 */
+	public static void copyCell(HSSFWorkbook wb, HSSFCell srcCell, HSSFCell distCell) {
+		HSSFCellStyle newstyle = wb.createCellStyle();
+		newstyle = copyCellStyle(srcCell.getCellStyle(), newstyle);
+		if (srcCell.getCellComment() != null) {
+			distCell.setCellComment(srcCell.getCellComment());
+		}
+		int srcCellType = srcCell.getCellType();
+		distCell.setCellType(srcCellType);
+		distCell.setCellStyle(newstyle);
+	}
+	/**
+	 * 复制单元格
+	 * @param srcCell 
+	 * @param distCell 
+	 * @param copyValueFlag
+	 */
+	public static void copyXCell(XSSFWorkbook wb, XSSFCell srcCell, XSSFCell distCell) {
+		XSSFCellStyle newstyle = wb.createCellStyle();
+		newstyle = copyXCellStyle(srcCell.getCellStyle(), newstyle);
+		if (srcCell.getCellComment() != null) {
+			distCell.setCellComment(srcCell.getCellComment());
+		}
+
+		int srcCellType = srcCell.getCellType();
+		distCell.setCellType(srcCellType);
+		distCell.setCellStyle(newstyle); 
+	}
+	/** 复制一个单元格样式到目的单元格样式 
+	 *  @param fromStyle 
+	 *  @param toStyle 
+	 */
+	public static XSSFCellStyle copyXCellStyle(XSSFCellStyle fromStyle, XSSFCellStyle toStyle) {
+		toStyle.setAlignment(fromStyle.getAlignment());
+		toStyle.setBorderBottom(fromStyle.getBorderBottom());
+		toStyle.setBorderLeft(fromStyle.getBorderLeft());
+		toStyle.setBorderRight(fromStyle.getBorderRight());
+		toStyle.setBorderTop(fromStyle.getBorderTop());
+		//toStyle.setTopBorderColor(fromStyle.getTopBorderColor());
+		toStyle.setTopBorderColor(fromStyle.getTopBorderXSSFColor());
+		//toStyle.setBottomBorderColor(fromStyle.getBottomBorderColor());
+		toStyle.setBottomBorderColor(fromStyle.getBottomBorderXSSFColor());
+		//toStyle.setRightBorderColor(fromStyle.getRightBorderColor());
+		toStyle.setRightBorderColor(fromStyle.getRightBorderXSSFColor());
+		//toStyle.setLeftBorderColor(fromStyle.getLeftBorderColor());
+		toStyle.setLeftBorderColor(fromStyle.getLeftBorderXSSFColor());
+		toStyle.setFillBackgroundColor(fromStyle.getFillBackgroundColor());
+		//toStyle.setFillBackgroundColor(fromStyle.getFillBackgroundXSSFColor());
+		toStyle.setFillForegroundColor(fromStyle.getFillForegroundColor());
+		//toStyle.setFillForegroundColor(fromStyle.getFillBackgroundXSSFColor());
+		toStyle.setDataFormat(fromStyle.getDataFormat());
+		toStyle.setFillPattern(fromStyle.getFillPattern());
+		toStyle.setFont(fromStyle.getFont());
+		toStyle.setHidden(fromStyle.getHidden());
+		toStyle.setIndention(fromStyle.getIndention());
+		toStyle.setLocked(fromStyle.getLocked());
+		toStyle.setRotation(fromStyle.getRotation());
+		toStyle.setVerticalAlignment(fromStyle.getVerticalAlignment());
+		toStyle.setWrapText(fromStyle.getWrapText());
+		return toStyle;
+	}
+	
+	/** 复制一个单元格样式到目的单元格样式  xlsx
+	 *  @param fromStyle 
+	 *  @param toStyle 
+	 */
+	public static HSSFCellStyle copyCellStyle(HSSFCellStyle fromStyle, HSSFCellStyle toStyle) {
+		toStyle.setAlignment(fromStyle.getAlignment());
+		toStyle.setBorderBottom(fromStyle.getBorderBottom());
+		toStyle.setBorderLeft(fromStyle.getBorderLeft());
+		toStyle.setBorderRight(fromStyle.getBorderRight());
+		toStyle.setBorderTop(fromStyle.getBorderTop());
+		toStyle.setTopBorderColor(fromStyle.getTopBorderColor());
+		toStyle.setBottomBorderColor(fromStyle.getBottomBorderColor());
+		toStyle.setRightBorderColor(fromStyle.getRightBorderColor());
+		toStyle.setLeftBorderColor(fromStyle.getLeftBorderColor());
+		toStyle.setFillBackgroundColor(fromStyle.getFillBackgroundColor());
+		toStyle.setFillForegroundColor(fromStyle.getFillForegroundColor());
+		toStyle.setDataFormat(fromStyle.getDataFormat());
+		toStyle.setFillPattern(fromStyle.getFillPattern());
+		toStyle.setFont(fromStyle.getFont(null));
+		toStyle.setHidden(fromStyle.getHidden());
+		toStyle.setIndention(fromStyle.getIndention());
+		toStyle.setLocked(fromStyle.getLocked());
+		toStyle.setRotation(fromStyle.getRotation());
+		toStyle.setVerticalAlignment(fromStyle.getVerticalAlignment());
+		toStyle.setWrapText(fromStyle.getWrapText());
+		return toStyle;
+	}
+	/**本地测试：
+	 * @throws ParseException **/
+	  public static void main(String[] a) throws FileNotFoundException, IOException, InvalidFormatException, ParseException{
+		String inputFilePath = "d:/excel/access_network_quotation_detail.xlsx";String outPutFilePath ="d:/excel/abc2.xlsx";
+		Date aaa = new Date();
+		  SimpleDateFormat s = new SimpleDateFormat("dd/MM/yyyy");
+		  String as = s.format(aaa);
+		  Date b = s.parse(as);
+		 
+		Map dataMap = new HashMap();
+		Map dataMap2 = new HashMap();
+		List<Integer> list = new ArrayList<Integer>();
+		list.add(8);list.add(10);
+		dataMap2.put("groupRow", list);
+		//{:null,"8,0":"ModelName501","8,3":"1865","8,2":null,"8,4":"1","8,5":"1865"}
+		//第四行，第二列 
+		dataMap.put("3,4", as);
+		dataMap.put("8,0", "1111111");  
+		dataMap.put("9,0", "1111111"); 
+		dataMap.put("9,3", "45");   
+		dataMap.put("8,0", "1");
+		dataMap.put("8,3", "1865"); 
+		dataMap.put("8,2", "1");
+		dataMap.put("8,4", "1");
+		dataMap.put("8,5", "1865");
+		dataMap.put("9,0", "2");
+		dataMap.put("9,3", "1865"); 
+		dataMap.put("9,2", "1");
+		dataMap.put("9,4", "1");
+		dataMap.put("9,5", "1865");
+		dataMap.put("10,0", "3");
+		dataMap.put("10,3", "1865"); 
+		dataMap.put("10,2", "1");
+		dataMap.put("10,4", "1");
+		dataMap.put("10,5", "1865");
+		dataMap.put("11,0", "4");
+		dataMap.put("11,3", "1865"); 
+		dataMap.put("11,2", "1");
+		dataMap.put("11,4", "1");
+		dataMap.put("11,5", "1865");
+		dataMap2.putAll(dataMap);
+		 copyAndUpdateXlsx(inputFilePath, outPutFilePath, dataMap, dataMap2,8, 12,8,12);
+		  
+	}
+}
