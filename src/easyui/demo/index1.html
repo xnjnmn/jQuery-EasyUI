@@ -1,113 +1,169 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+
+<!DOCTYPE html>
 <html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>Complex Layout - jQuery EasyUI Demo</title>
-	<link rel="stylesheet" type="text/css" href="../themes/default/easyui.css">
-	<link rel="stylesheet" type="text/css" href="../themes/icon.css">
-	<script type="text/javascript" src="../jquery-1.6.min.js"></script>
-	<script type="text/javascript" src="../jquery.easyui-1.2.4.js"></script>
-	<script>
-		$(function(){
-			$('#tt2').datagrid({
-				title:'My Title',
-				iconCls:'icon-save',
-				width:600,
-				height:350,
-				nowrap: false,
-				striped: true,
-				fit: true,
-				url:'datagrid_data.json',
-				sortName: 'code',
-				sortOrder: 'desc',
-				idField:'code',
-				frozenColumns:[[
-	                {field:'ck',checkbox:true},
-	                {title:'code',field:'code',width:80,sortable:true}
-				]],
-				columns:[[
-			        {title:'Base Information',colspan:3},
-					{field:'opt',title:'Operation',width:100,align:'center', rowspan:2,
-						formatter:function(value,rec){
-							return '<span style="color:red">Edit Delete</span>';
-						}
-					}
-				],[
-					{field:'name',title:'Name',width:120},
-					{field:'addr',title:'Address',width:120,rowspan:2,sortable:true},
-					{field:'col4',title:'Col41',width:150,rowspan:2}
-				]],
-				pagination:true,
-				rownumbers:true
-			});
-		});
-		function addmenu(){
-			var header = $('.layout-expand .layout-button-down').parent().parent();
-			var menu = $('<div style="position:absolute;left:0;top:0;background:#fafafa;"></div>').appendTo(header);
-			var btn = $('<a href="#">test</a>').appendTo(menu);
-			btn.menubutton({
-				menu:'#mymenu'
-			});
-		}
-	</script>
-</head>
-<body class="easyui-layout">
-	<div id="mymenu" style="width:150px;">
-		<div>item1</div> 
-		<div>item2</div>
-	</div>
-		<div region="north"  split="true" style="overflow:hidden;height:100px;padding:10px;">
-			<p>n1</p>
-			<p>n2</p>
-			<p>n3</p>
-			<p>n4</p>
-			<p>n5</p>
-		</div>
-		<div region="south" title="South Title" split="true" style="height:100px;padding:10px;background:#efefef;">
-			<div class="easyui-layout" fit="true" style="background:#ccc;">
-				<div region="center">sub center</div>
-				<div region="east" split="true" style="width:200px;">sub center</div>
+
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<!--easyui
+		<script src="easyui/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="easyui/jquery.easyui.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="easyui/locale/easyui-lang-zh_CN.js" type="text/javascript" charset="utf-8"></script>-->
+		<!--字体图标
+		<link rel="stylesheet" type="text/css" href="easyui/themes/icons/css/font-awesome.min.css" />-->
+		<!--皮肤
+		<link rel="stylesheet" type="text/css" href="easyui/themes/gray/easyui.css" />
+		<link rel="stylesheet" type="text/css" href="css/superBlue.css" />
+		<script src="js/super.js" type="text/javascript" charset="utf-8"></script>-->
+		
+		<link rel="stylesheet" type="text/css" href="../themes/default/easyui.css">
+		<link rel="stylesheet" type="text/css" href="../themes/icon.css">
+		<link rel="stylesheet" type="text/css" href="easyui/themes/icons/css/font-awesome.min.css" />
+		<script type="text/javascript" src="../jquery-1.6.min.js"></script>
+		<script type="text/javascript" src="../jquery.easyui-1.2.4.js"></script>
+	</head>
+ 
+	<body id="main" class="easyui-layout">
+		<div data-options="region:'north',border:false" class="super-north" style="height: 50px;">
+			<!--顶部-->
+			<div class="super-navigation">
+				<div class="super-navigation-title">SUPER THEME</div>
+				<div class="super-navigation-main">
+					<div class="super-setting-left">
+						<ul>
+							<li><i class="fa fa-commenting-o"></i></li>
+							<li><i class="fa fa-envelope-o"></i></li>
+							<li><i class="fa fa-bell-o"></i></li>
+							<!--<div id="mm2" class="easyui-menu">
+								<div>有情况</div>
+								<div>你瞅啥</div>
+								<div class="menu-sep"></div>
+								<div>瞅你咋滴</div>
+							</div>-->
+						</ul>
+					</div>
+					<div class="super-setting-right">
+						<ul>
+							<li class="user">
+								<span class="user-icon"><img src="img/favicon.png"/></span>
+								<span>管理员</span>
+							</li>
+							<li>
+								<div class="super-setting-icon">
+									<i class="fa fa-gears"></i>
+								</div>
+								<div id="mm" class="easyui-menu">
+									<div>个人中心</div>
+									<div id="themeSetting">主题</div>
+									<div class="menu-sep"></div>
+									<div id="logout">退出</div>
+								</div>
+							</li>
+						</ul>
+					</div>
+				</div>
 			</div>
 		</div>
-		<div region="east" iconCls="icon-reload" title="Tree Menu" split="true" style="width:180px;">
-			<ul class="easyui-tree" url="tree_data.json"></ul>
-		</div>
-		<div region="west" split="true" title="West Menu" style="width:280px;padding1:1px;overflow:hidden;">
-			<div class="easyui-accordion" fit="true" border="false">
-				<div title="Title1" style="overflow:auto;">
-					<p>content1</p>
-					<p>content1</p>
-					<p>content1</p>
-					<p>content1</p>
-					<p>content1</p>
-					<p>content1</p>
-					<p>content1</p>
-					<p>content12</p>
+		<div id="easyui-layout-west" data-options="region:'west',title:'MAIN NAVIGATION',border:false">
+			<!--左侧导航-->
+			<div class="easyui-accordion" data-options="border:false,fit:true,selected:true">
+				<div title="基础" data-options="iconCls:'fa fa-navicon'">
+					<ul>
+						<li data-url='example/pagination.html'>Pagination（分页）</li>
+						<li data-url='example/searchBox.html'>SearchBox（搜索框）</li>
+						<li data-url="example/progressBar.html">ProgressBar（进度条)</li>
+						<li data-url='example/toolTip.html'>Tooltip（提示框）</li>
+					</ul>
 				</div>
-				<div title="Title2" selected="true" style="padding:10px;">
-					content2
-					<a href="#" onclick="addmenu()">addmenu</a>
+				<div title="布局" data-options="iconCls:'fa fa-desktop'" style="padding-left: 10px;">
+					<div id="aaa" class="easyui-accordion" data-options="border:false,fit:true,selected:true">
+						<div title="Title1" data-options="iconCls:'fa fa-sitemap'" style="padding-left: 10px;">
+							<div id="aaa2" class="easyui-accordion" data-options="border:false,fit:true,selected:true">
+								<div title="Title1" data-options="iconCls:'fa fa-sitemap'">
+									<h3 style="color:#0099FF;">我是分类</h3>
+								</div>
+								<div title="Title2" data-options="iconCls:'fa fa-sitemap'">
+									content2
+								</div>
+								<div title="Title3" data-options="iconCls:'fa fa-sitemap'">
+									content3
+								</div>
+							</div>
+						</div>
+						<div title="Title2" data-options="iconCls:'fa fa-sitemap'">
+							content2
+						</div>
+						<div title="Title3" data-options="iconCls:'fa fa-sitemap'">
+							content3
+						</div>
+					</div>
 				</div>
-				<div title="Title3">
+				<div title="菜单和按钮" data-options="iconCls:'fa fa-gavel'">
+					content3
+				</div>
+				<div title="表单" data-options="iconCls:'fa fa-wpforms'">
+					content3
+				</div>
+				<div title="窗口" data-options="iconCls:'fa fa-window-maximize'">
+					content3
+				</div>
+				<div title="表格和树" data-options="iconCls:'fa fa-table'">
+					content3
+				</div>
+				<div title="扩展" data-options="iconCls:'fa fa-sitemap'">
 					content3
 				</div>
 			</div>
 		</div>
-		<div region="center" title="Main Title" style="overflow:hidden;">
-			<div class="easyui-tabs" fit="true" border="false">
-				<div title="Tab1" style="padding:20px;overflow:hidden;"> 
-					<div style="margin-top:20px;">
-						<h3>jQuery EasyUI framework help you build your web page easily.</h3>
-						<li>easyui is a collection of user-interface plugin based on jQuery.</li> 
-						<li>using easyui you don't write many javascript code, instead you defines user-interface by writing some HTML markup.</li> 
-						<li>easyui is very easy but powerful.</li> 
-					</div>
-				</div>
-				<div title="Tab2" closable="true" style="padding:20px;">This is Tab2 width close button.</div>
-				<div title="Tab3" iconCls="icon-reload" closable="true" style="overflow:hidden;padding:5px;">
-					<table id="tt2"></table> 
+		<div data-options="region:'center'" style="padding-top: 2px;">
+			<!--主要内容-->
+			<div id="tt" class="easyui-tabs" data-options="border:false,fit:true">
+				<div title="首页" data-options="iconCls:'fa fa-home'">
+					<iframe src="demo.html" width="100%" height="99%" frameborder="no"></iframe>
 				</div>
 			</div>
 		</div>
-</body>
+		<div data-options="region:'south'" class="super-south">
+			<!--页脚-->
+			<div class="super-footer-info">
+				<span><i class="fa fa-info-circle"></i> 作者：tianyu&nbsp;&nbsp;QQ：779205344</span>
+				<span><i class="fa fa-copyright"></i> CopyRight 2016 版权所有 <i class="fa fa-caret-right"></i></span>
+			</div>
+		</div>
+
+		<!--主题设置弹窗-->
+		<div id="win">
+			<div class="themeItem">
+				<ul>
+					<li>
+						<div class="TURQUOISE">TURQUOISE</div>
+					</li>
+					<li>
+						<div class="EMERALD">EMERALD</div>
+					</li>
+					<li>
+						<div class="PETER-RIVER">PETER RIVER</div>
+					</li>
+					<li>
+						<div class="AMETHYST">AMETHYST</div>
+					</li>
+					<li>
+						<div class="WET-ASPHALT">WET ASPHALT</div>
+					</li>
+					<li>
+						<div class="SUN-FLOWER">SUN FLOWER</div>
+					</li>
+					<li>
+						<div class="CARROT">CARROT</div>
+					</li>
+					<li class="themeActive">
+						<div class="ALIZARIN">ALIZARIN</div>
+					</li>
+				</ul>
+			</div>
+		</div>
+
+	</body>
+
 </html>
